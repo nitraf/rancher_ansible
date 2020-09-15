@@ -1,0 +1,10 @@
+---
+# file: site.yml
+
+- hosts: rancher
+  gather_facts: yes
+  become: yes
+  roles:
+    - { role: base, tags: ['base'] }
+    - { role: docker, tags: ['docker'] }
+    - { role: rancher_server, tags: ['rancher_server']}

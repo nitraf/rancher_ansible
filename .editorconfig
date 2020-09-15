@@ -1,0 +1,49 @@
+
+# EditorConfig helps developers define and maintain consistent
+# coding styles between different editors and IDEs
+# editorconfig.org
+
+root = true
+
+# all files
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 120
+indent_style = space
+
+[*.txt]
+indent_style = tab
+indent_size = 4
+
+[*.{diff,markdown}]
+trim_trailing_whitespace = false
+max_line_length = unset
+max_line_length = off
+
+[*.{yaml,yml}]
+indent_size = 2
+max_line_length = unset
+
+[*.md]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespaces = false
+insert_final_newline = true
+
+[*.json]
+indent_size = 2
+insert_final_newline = false
+max_line_length = unset
+
+[*.html]
+indent_size = 2
+max_line_length = unset
+
+[vagrantfile]
+indent_size = 2
+indent_style = space

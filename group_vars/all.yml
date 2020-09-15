@@ -1,0 +1,20 @@
+---
+# all variables
+rancher_server: "rancher01.example.com"
+rancher_server_url: "https://rancher01.example.com"
+
+local_bin_dir: /usr/local/bin
+
+rest_version: "v3"
+
+dockerRootDir: "/var/lib/docker"
+
+# cluster_name: "sandbox"
+cluster_name: "sandbox"
+cluster_project: "Default"
+
+newPassword: "abc"  				# New admin password, Replace with ansible Valut.
+
+# token and replace with ansible Valut
+userId: "token-54gf4"
+tokenId: "fjphsbzlfm4v7svnsmh4g82svvhqh676p6qq8np6gw5fwz7wx5kvlr"

@@ -1,62 +1,65 @@
 ---
-# tasks file for common
-
-- name: Install Docker role dependencies
-  apt:
-    name: "{{ item }}"
-  loop: "{{ docker__package_dependencies }}"
-
-- name: Add Docker's GPG key
-  apt_key:
-    id: "{{ docker__apt_key_id }}"
-    url: "{{ docker__apt_key_server }}"
-
-- name: Configure Docker's APT repository
-  apt_repository:
-    repo: "{{ docker__apt_repository }}"
-    update_cache: true
-
-- name: Install Docker {{ docker__version }}~{{ docker__edition }}{{ docker__minor }}
-  apt:
-    name: "docker-{{ docker__edition }}={{ docker__version }}~{{ docker__edition }}{{ docker__minor }}~ubuntu"
-    force: yes
+# tasks file for docker
+- name: Install yum utils
+  package:
+    name: yum-utils
     state: present
 
-- name: Remove Upstart config file
-  file:
-    path: "/etc/default/docker"
-    state: "absent"
+- name: Install device-mapper-persistent-data
+  package:
+    name: device-mapper-persistent-data
+    state: present
 
-- name: Create Docker configuration directories
+- name: Install lvm2
+  package:
+    name: lvm2
+    state: present
+
+- name: Add Docker repo
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docer-ce.repo
+
+- name: Install Docker
+  package:
+    name: "docker-ce-{{ docker__version }}"
+    state: present
+
+- name: Create docker config folder
   file:
-    path: "{{ item }}"
-    state: "directory"
-    owner: "root"
-    group: "root"
-    mode: "0755"
-  loop:
-    - "/etc/docker"
-    - "/etc/systemd/system/docker.service.d"
-    - "{{ docker__root }}"
+    path: /etc/docker
+    state: directory
+    mode: '0755'
 
 - name: Configure Docker daemon options
   template:
-    src: "etc/docker/daemon.json.j2"
-    dest: "/etc/docker/daemon.json"
-    owner: "root"
-    group: "root"
-    mode: "0644"
+    src: etc/docker/daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  register: docker_json_registered
   when: docker__daemon_default_options or docker__daemon_options
 
 - name: Generate customized environment systemd unit file
   template:
-    src: "etc/systemd/system/docker.service.d/environment.conf.j2"
-    dest: "/etc/systemd/system/docker.service.d/environment.conf"
-    owner: "root"
-    group: "root"
-    mode: "0644"
+    src: etc/systemd/system/docker.service.d/environment.conf.j2
+    dest: /etc/systemd/system/docker.service.d/environment.conf
+    owner: root
+    group: root
+    mode: '0644'
   register: docker__register_systemd_customized
   when: docker__daemon_environment
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: true
+  when:
+    - docker__register_systemd_customized is defined
+    - docker__register_systemd_customized is changed
+    - docker_json_registered is defined
+    - docker_json_registered is changed
+
   notify: ["Restart Docker"]
 
 - name: Add user(s) to "docker" group
@@ -66,29 +69,8 @@
     append: true
   loop: "{{ docker__users }}"
 
-- name: Install Python for managing Docker login credentials
-  apt:
-    name: "python"
-  when: docker__registries
-
-- name: Install docker-py for managing Docker login credentials
-  pip:
-    name: "docker-py"
-  when: docker__registries
-
-- name: Manage login credentials for 1 or more Docker registries
-  docker_login:
-    registry_url: "{{ item.registry_url | default(omit) }}"
-    state: "{{ item.state | default('present') }}"
-    username: "{{ item.username }}"
-    password: "{{ item.password }}"
-    email: "{{ item.email | default(omit)}}"
-    reauthorize: "{{ item.reauthorize | default(omit) }}"
-  loop: "{{ docker__registries }}"
-  when: item.username | default() and item.password | default()
-  become_user: "{{ item.system_user | default(omit) }}"
-  #become: true
-- name: Start Docker service , if not started
-  service: 
-    name: docker 
+- name: Start Docker service
+  service:
+    name: docker
     state: started
+    enabled: yes

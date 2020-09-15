@@ -1,0 +1,44 @@
+---
+# main file for rancher_cluster
+
+# create rancher cluster
+- include: rancher_cluster.yml
+
+- name: For "{{ cluster_name }}" Cluster and fetch cluserId
+  uri:
+    url: "{{ rancher_server_url }}/{{ rest_version }}/clusters?name={{ cluster_name }}"
+    method: GET
+    force_basic_auth: yes
+    headers:
+      Authorization: "Bearer ${{ apitoken }}"
+    body_format: json
+    validate_certs: no
+    #return_content: yes
+    #follow_redirects: yes
+    status_code: 200
+  register: clustercheck
+
+- name: Get Nodecommand for the project
+  uri:
+    url: "{{ rancher_server_url }}/{{ rest_version }}/clusterregistrationtokens?clusterId={{ clustercheck.json['data'][0]['id'] }}"
+    method: GET
+    force_basic_auth: yes
+    headers:
+      Authorization: "Bearer ${{ apitoken }}"
+    body_format: json
+    validate_certs: no
+    #return_content: yes
+    #follow_redirects: yes
+    status_code: 200
+  register: nodecmd
+  when: clustercheck.json['data'][0]['state'] == "active"
+
+- name: Node Command to join Cluster
+  debug:
+    msg: "{{ nodecmd.json['data'][0]['nodeCommand'] }}"
+
+# Configure etcd control plane
+- include: join_etcd_cplane.yml
+
+# Add worker nodes to cluster
+- include: join_worker_node.yml

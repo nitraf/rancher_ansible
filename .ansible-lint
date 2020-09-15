@@ -1,0 +1,5 @@
+# .ansible-lint
+skip_list:
+  - '204'  # Lines should be no longer than 160 chars'
+  - '403'  # Package installs should not use latest'
+  - '305'  # Use shell only when shell functionality is required'

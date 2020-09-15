@@ -1,7 +1,6 @@
 ---
 #- hosts: rancher-master
-- hosts: server1
+- hosts: rancher
   roles:
      - docker
      - rancher
-...

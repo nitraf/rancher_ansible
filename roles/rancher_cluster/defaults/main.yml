@@ -1,0 +1,75 @@
+---
+# defaults file for rancher
+rancher_version: "v2.5.0"
+
+rancher__cli_version: "v2.4.6"
+
+rancher__create_cluster_body: |
+  {
+    "dockerRootDir":"{{ dockerRootDir }}",
+    "enableNetworkPolicy":false,
+    "type":"cluster",
+    "rancherKubernetesEngineConfig":{
+       "addonJobTimeout":30,
+       "ignoreDockerVersion":true,
+       "sshAgentAuth":false,
+       "type":"rancherKubernetesEngineConfig",
+       "authentication":{
+          "type":"authnConfig",
+          "strategy":"x509"
+       },
+       "network":{
+          "type":"networkConfig",
+          "plugin":"flannel"
+       },
+       "ingress":{
+          "type":"ingressConfig",
+          "provider":"nginx"
+       },
+       "monitoring":{
+          "type":"monitoringConfig",
+          "provider":"metrics-server"
+       },
+       "services":{
+          "type":"rkeConfigServices",
+          "kubeApi":{
+             "podSecurityPolicy":false,
+             "type":"kubeAPIService"
+          },
+          "etcd":{
+             "snapshot":true,
+             "type":"etcdService",
+             "extraArgs":{
+                "heartbeat-interval":500,
+                "election-timeout":5000
+             }
+          }
+       }
+    },
+    "name":"{{ cluster_name }}"
+  }
+
+rancher__cluster: |
+  {
+     "dockerRootDir":"/var/lib/docker",
+     "enableNetworkPolicy":false,
+     "type":"cluster",
+     "rancherKubernetesEngineConfig":{
+        "addonJobTimeout":30,
+        "ignoreDockerVersion":true,
+        "sshAgentAuth":false,
+        "type":"rancherKubernetesEngineConfig",
+        "network":{
+           "type":"networkConfig",
+           "plugin":"Flannel"
+        }
+     },
+     "name":"yournewclustersssansi"
+  }
+
+rancher__auth: |
+  {
+     "Authorization":{
+        "Bearer token-bvlhv":"rwbbhjs6f7nl6cst4djtbwj4tjlgsl5q5sw5psm2kvzprs4clkklv2"
+     }
+  }

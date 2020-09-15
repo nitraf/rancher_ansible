@@ -1,0 +1,216 @@
+---
+# rancher_server main.yml
+
+- name: Check if rancher container is running
+  community.general.docker_container_info:
+    name: rancher-server
+  register: server_running
+
+- name: Container is already running.
+  debug:
+    msg: "Rancher Master is already Running"
+  when: server_running.exists and type == "rmaster"
+
+- block:
+    - name: Create rancher persitent data dir
+      file:
+        path: /opt/rancher
+        state: directory
+        mode: '0755'
+
+    - name: Start rancher server
+      community.general.docker_container:
+        container_default_behavior: no_defaults
+        name: rancher-server
+        image: "rancher/rancher:{{ rancher_version }}"
+        privileged: yes
+        state: started
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - "/opt/rancher:/var/lib/rancher"
+      register: rancher_server
+
+    - name: "Check Rancher Server {{ rancher_server_url }} accessible from UI"
+      uri:
+        url: "{{ rancher_server_url }}/healthz"
+        validate_certs: no
+        follow_redirects: all
+      register: http_status
+      until: http_status.status == 200
+      retries: 10
+      delay: 15
+      when: rancher_server
+
+    - name: Debug http
+      debug:
+        msg: "{{ http_status }}"
+
+    - name: Ensure wrong credentials are unauthorized
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}-public/localProviders/local?action=login"
+        method: POST
+        validate_certs: false
+        headers:
+          Content-Type: "application/json"
+        body: '{"username":"admin","password":"admin"}'  # Default Admin password
+        body_format: json
+        status_code: 401
+      ignore_errors: True
+      changed_when: False
+      register: login
+
+    - name: Debug login
+      debug:
+        msg: "{{ login.status }}"
+
+    - name: Set pass to default
+      set_fact:
+        rpass: "admin"
+      when: login.status == 200
+
+    - name: Set pass to newpass
+      set_fact:
+        rpass: "{{ newPassword }}"
+      when: login.status == 401
+
+    - name: Authenticate & retrieve APIKEY
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}-public/localProviders/local?action=login"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body: '{"username":"admin","password":"{{ rpass }}"}'  # Default Admin password
+        body_format: json
+        validate_certs: no
+        status_code: 201
+      register: restdata
+      when: http_status.status == 200
+
+    - name: Set token var
+      set_fact:
+        rtoken: "{{ restdata.json['token'].split(':')[1] | lower }}"
+      when: restdata.status == 201
+
+    - name: Debug token
+      debug:
+        msg: "Token -> {{ rtoken }}"
+
+    - name: Authenticate & Reset the Default Admin password
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}/users?action=changepassword"
+        method: POST
+        force_basic_auth: yes
+        user: "{{ restdata.json['name'] }}"
+        password: "{{ rtoken }}"
+        headers:
+          Content-Type: "application/json"
+        body: '{"currentPassword":"admin","newPassword":"{{ newPassword }}"}'
+        body_format: json
+        validate_certs: no
+        status_code: 200
+      register: resetpass
+      when: restdata.status == 201 and login.status != 401
+
+    - name: Debug loginToken
+      debug:
+        msg: "loginToken -> {{ apitoken }}"
+
+    - name: "Set Rancher Server URL {{ rancher_server_url }}"
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}/settings/server-url"
+        method: PUT
+        force_basic_auth: yes
+        user: "{{ restdata.json['name'] }}"
+        password: "{{ rtoken }}"
+        headers:
+          Content-Type: "application/json"
+        body: '{"name":"server-url","value":"{{ rancher_server_url }}"}'
+        body_format: json
+        validate_certs: no
+        status_code: 200
+      register: reseturl
+
+    - name: Create API key
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}/settings/server-url"
+        method: PUT
+        user: "{{ restdata.json['name'] }}"
+        password: "{{ rtoken }}"
+        headers:
+          Content-Type: "application/json"
+        body: '{"type":"token","description":"automation"}'
+        validate_certs: no
+        status_code: 200
+      register: apitoken
+
+    - name: Debug apiToken
+      debug:
+        msg: "apiToken -> {{ apitoken }}"
+
+    - name: Check if helm already exists
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}/catalogs"
+        method: POST
+        force_basic_auth: yes
+        user: "{{ restdata.json['name'] }}"
+        password: "{{ rtoken }}"
+        headers:
+          Content-Type: "application/json"
+        body: '{"name":"helm","url":"{{ helm_server_url }}","branch":"{{ helm_branch }}","kind":"helm"}'
+        body_format: json
+        validate_certs: no
+        status_code: 409
+      ignore_errors: true
+      register: helm
+
+    - name: Enable Helm in catalog
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}/catalogs"
+        method: POST
+        force_basic_auth: yes
+        user: "{{ restdata.json['name'] }}"
+        password: "{{ rtoken }}"
+        headers:
+          Content-Type: "application/json"
+        body: '{"name":"helm","url":"{{ helm_server_url }}","branch":"{{ helm_branch }}","kind":"helm"}'
+        body_format: json
+        validate_certs: no
+        status_code: 201
+      register: restcatalog
+      when: helm.status != 409
+
+    - name: Check that the somefile.conf exists
+      stat:
+        path: ~/.rancher/cacerts
+      register: stat_result
+
+    - name: Creates cacerts directory
+      file:
+        path: "~/.rancher/"
+        state: directory
+      when: not stat_result.stat.exists
+
+    - name: Get CaCerts
+      uri:
+        url: "{{ rancher_server_url }}/{{ rest_version }}/settings/cacerts"
+        method: GET
+        force_basic_auth: yes
+        user: "{{ userId }}"
+        password: "{{ tokenId }}"
+        body_format: json
+        validate_certs: no
+        #return_content: yes
+        #follow_redirects: yes
+        status_code: 200
+      register: getcacerts
+      when: not stat_result.stat.exists
+
+    - name: Create cacerts file
+      template:
+        src: "cacerts.j2"
+        dest: "~/.rancher/cacerts"
+      when: not stat_result.stat.exists
+
+  when: type == "rmaster"

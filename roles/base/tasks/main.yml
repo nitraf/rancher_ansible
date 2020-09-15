@@ -1,0 +1,42 @@
+---
+# tasks file for base
+- name: Enable epel repo
+  package:
+    name: epel-release
+    state: present
+
+- name: Install additional packages
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - vim
+    - mc
+    - htop
+    - bc
+    - tcpdump
+    - telnet
+    - zip
+    - unzip
+    - wget
+    - curl
+    - python-pip
+    - python-docker-py
+
+- name: pip self-update
+  pip:
+    name: pip
+    state: latest
+
+# local vagrant env uses example.com domain
+- name: Host record
+  debug:
+    msg: "{{ hostvars['rancher-01'].ansible_ssh_host }} {{ rancher_server }}"
+  when: "'example.com' in rancher_server_url"
+
+- name: Add hosts record if running on vagrant
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ hostvars['rancher-01'].ansible_ssh_host }} {{ rancher_server }}"
+    state: present
+  when: "'example.com' in rancher_server_url"

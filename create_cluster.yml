@@ -1,0 +1,12 @@
+---
+# Defaults variable to create new clusters
+- name: Set Variables
+  set_fact:
+    cluster_name: "sandbox" # Name of the cluster that needs to be created
+    cluster_project: "Default"  # Project in the cluster to be used
+
+#------ Base Modules
+- include: rancher_cluster.yml
+- include: join_etcd_cplane.yml
+- include: join_worker_node.yml
+#- include: add_catalogs.yml

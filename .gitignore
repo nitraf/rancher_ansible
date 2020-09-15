@@ -1,0 +1,25 @@
+#######################################################################################
+#                                                                                     #
+#  A Collection of Useful .gitignore Templates  https://github.com/github/gitignore   #
+#                                                                                     #
+#######################################################################################
+# IntelliJ
+**/tmp
+.idea
+*.iml
+# MacOS
+*.DS_Store*
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+# Editor swapfiles
+.*.sw?
+*~
+# Vagrant stuff
+acceptance_config.yml
+boxes/*
+/.vagrant
+/website/.vagrant
+/website/build
+/vagrant-spec.config.rb
+test/vagrant-spec/.vagrant/
+########################################################################################################################

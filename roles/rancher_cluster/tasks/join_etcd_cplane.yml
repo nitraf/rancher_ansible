@@ -1,0 +1,18 @@
+---
+- block:
+    # Check if container running
+    # https://docs.ansible.com/ansible/2.8/modules/docker_container_info_module.html
+    - name: Check if rancher agent container is running
+      docker_container_info:
+        name: rancher-agent
+      register: agent_running
+
+    - name: Does container exist?
+      ansible.builtin.debug:
+        msg: "Control plane rancher-agent {{ 'exists' if result.exists else 'does not exist' }}"
+
+    - name:  Adding etcd-controlplane node to the Cluster {{ cluster_name }}
+      become: true
+      shell: "{{ nodecmd.json['data'][0]['nodeCommand'] }} --etcd --controlplane "
+      when: not agent_running.exists
+  when: type == "etcdcplane"
