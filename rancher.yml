@@ -1,6 +1,0 @@
----
-#- hosts: rancher-master
-- hosts: rancher
-  roles:
-     - docker
-     - rancher

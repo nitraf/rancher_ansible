@@ -1,7 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-N = 3
+N = 4
 
 Vagrant.configure("2") do |config|
   # Base VM OS configuration.

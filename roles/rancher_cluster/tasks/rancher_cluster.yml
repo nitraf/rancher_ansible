@@ -1,34 +1,36 @@
 ---
 - block:
+    - name: Debug apiToken
+      debug:
+        msg: "apiToken {{ apiToken }}"
+
     - name: Check Cluster and fetch clusterId
       uri:
         url: "{{ rancher_server_url }}/{{ rest_version }}/clusters?name={{ cluster_name }}"
         method: GET
-        force_basic_auth: yes
-        #user: "{{ userId }}"
-        #password: "{{ tokenId }}"
         headers:
-          Authorization: "Bearer ${{ apitoken }}"
+          Content-Type: "application/json"
+          Authorization: "Bearer {{ apiToken }}"
         body_format: json
         validate_certs: no
-        #return_content: yes
-        #follow_redirects: yes
         status_code: 200
+      ignore_errors: True
       register: clustercheck
+
+    - name: Debug clustercheck
+      debug:
+        msg: "{{ clustercheck }}"
 
     - name: Create Cluster {{ cluster_name }}
       uri:
         url: "{{ rancher_server_url }}/{{ rest_version }}/clusters"
         method: POST
-        force_basic_auth: yes
         headers:
           Content-Type: "application/json"
-          Authorization: "Bearer ${{ apitoken }}"
+          Authorization: "Bearer {{ apiToken }}"
         body: "{{ rancher__create_cluster_body }}"
         body_format: json
         validate_certs: no
-        #return_content: yes
-        #follow_redirects: yes
         status_code: 201
       register: clusterdata
       when: clustercheck.json['pagination']['total'] == 0
@@ -37,15 +39,12 @@
       uri:
         url: "{{ rancher_server_url }}/{{ rest_version }}/clusterregistrationtoken"
         method: POST
-        force_basic_auth: yes
         headers:
           Content-Type: "application/json"
-          Authorization: "Bearer ${{ apitoken }}"
+          Authorization: "Bearer {{ apiToken }}"
         body: "{\"clusterId\":\"{{ clusterdata.json['id'] }}\" }"
         body_format: json
         validate_certs: no
-        #return_content: yes
-        #follow_redirects: yes
         status_code: 201
       when: clustercheck.json['pagination']['total'] == 0
-  when: type == "rmaster"
+  when: "inventory_hostname in groups['rancher_master']"

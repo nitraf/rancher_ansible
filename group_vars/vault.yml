@@ -1,9 +1,0 @@
----
-# newPassword: "abc"  				# New admin password, Replace with ansible Valut.
-
-# token and replace with ansible Valut
-# userId: "token-54gf4"
-# tokenId: "fjphsbzlfm4v7svnsmh4g82svvhqh676p6qq8np6gw5fwz7wx5kvlr"
-
-#userId: "token-54gf4" # Token
-#tokenId: "fjphsbzlfm4v7svnsmh4g82svvhqh676p6qq8np6gw5fwz7wx5kvlr" # token and replace with ansible Valut

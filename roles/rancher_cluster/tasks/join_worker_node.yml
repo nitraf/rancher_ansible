@@ -1,16 +1,17 @@
 ---
 - block:
-    - name: Check if rancher agent container is running
+    - name: join_worker_node | Check if rancher agent container is running
       docker_container_info:
         name: rancher-agent
       register: agent_running
 
-    - name: Does container exist?
+    - name: join_worker_node | Does container exist?
       ansible.builtin.debug:
-        msg: "Worker rancher-agent {{ 'exists' if result.exists else 'does not exist' }}"
+        msg: "Worker rancher-agent {{ 'exists' if agent_running.exists else 'does not exist' }}"
 
-    - name:  Adding worker node to the Cluster {{ cluster_name }}
+    - name:  join_worker_node | Adding worker node to the Cluster {{ cluster_name }}
       become: true
-      shell: "{{ nodecmd.json['data'][0]['nodeCommand'] }} --worker"
-      when: not agent_running.exists #and type == "worker"
-  when: type == "worker"
+      shell: "{{ nodecommand }} --worker"
+      when: not agent_running.exists
+
+  when: "inventory_hostname in groups['rancher_worknode']"

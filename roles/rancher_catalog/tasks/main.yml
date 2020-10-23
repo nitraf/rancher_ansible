@@ -1,9 +1,0 @@
----
-# Apps install file for rancher
-
-# TODO: install rancher cli
-
-- name: Install NFS catalog
-  become: true
-  shell: "rancher apps install -n nfs-server-provisioner  nfs-server-provisioner nfs"  # hard coded
-  when: type == "rmaster"

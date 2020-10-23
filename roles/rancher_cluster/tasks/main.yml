@@ -4,41 +4,91 @@
 # create rancher cluster
 - include: rancher_cluster.yml
 
-- name: For "{{ cluster_name }}" Cluster and fetch cluserId
-  uri:
-    url: "{{ rancher_server_url }}/{{ rest_version }}/clusters?name={{ cluster_name }}"
-    method: GET
-    force_basic_auth: yes
-    headers:
-      Authorization: "Bearer ${{ apitoken }}"
-    body_format: json
-    validate_certs: no
-    #return_content: yes
-    #follow_redirects: yes
-    status_code: 200
-  register: clustercheck
+- block:
+  - name: For "{{ cluster_name }}" Cluster and fetch cluserId
+    uri:
+      url: "{{ rancher_server_url }}/{{ rest_version }}/clusters?name={{ cluster_name }}"
+      method: GET
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {{ apiToken }}"
+      body_format: json
+      validate_certs: no
+      status_code: 200
+    register: clustercheck
 
-- name: Get Nodecommand for the project
-  uri:
-    url: "{{ rancher_server_url }}/{{ rest_version }}/clusterregistrationtokens?clusterId={{ clustercheck.json['data'][0]['id'] }}"
-    method: GET
-    force_basic_auth: yes
-    headers:
-      Authorization: "Bearer ${{ apitoken }}"
-    body_format: json
-    validate_certs: no
-    #return_content: yes
-    #follow_redirects: yes
-    status_code: 200
-  register: nodecmd
-  when: clustercheck.json['data'][0]['state'] == "active"
+  - name: Debug clustercheck
+    debug:
+      msg: "{{ clustercheck }}"
 
-- name: Node Command to join Cluster
-  debug:
-    msg: "{{ nodecmd.json['data'][0]['nodeCommand'] }}"
+  - name: Debug clusterId
+    debug:
+      msg: "clusterId: {{ clustercheck.json['data'][0]['id'] }}"
+
+  - name: Get Nodecommand for the project
+    uri:
+      url: "{{ rancher_server_url }}/{{ rest_version }}/clusterregistrationtokens?clusterId={{ clustercheck.json['data'][0]['id'] }}"
+      method: GET
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {{ apiToken }}"
+      body_format: json
+      validate_certs: no
+      status_code: 200
+    register: nodecmd
+
+  - name: Node command to join Cluster
+    set_fact:
+      nodecommand: "{{ nodecmd.json['data'][0]['nodeCommand'] }}"
+    run_once: yes
+    delegate_to: rancher
+
+
+  - name: Debug Node Command to join Cluster
+    debug:
+      msg: "{{ nodecommand }}"
+
+  # - name: Copy nodecommand to file
+  #   local_action: copy content={{ nodecommand }} dest="rancher_node_command"
+
+  when: "inventory_hostname in groups['rancher_master']"
 
 # Configure etcd control plane
-- include: join_etcd_cplane.yml
+#- include: join_etcd_cplane.yml
+- block:
+  # Check if container running
+  # https://docs.ansible.com/ansible/2.8/modules/docker_container_info_module.html
+  - name: join_etcd_cplane | Check if rancher agent container is running
+    docker_container_info:
+      name: rancher-agent
+    register: agent_running
+
+  - name: join_etcd_cplane | Does container exist?
+    ansible.builtin.debug:
+      msg: "Control plane rancher-agent {{ 'exists' if agent_running.exists else 'does not exist' }}"
+
+  - name:  join_etcd_cpane | Adding etcd-controlplane node to the Cluster {{ cluster_name }}
+    become: true
+    shell: "{{ nodecommand }} --etcd --controlplane "
+    when: not agent_running.exists
+
+  when: "inventory_hostname in groups['rancher_cplane']"
 
 # Add worker nodes to cluster
-- include: join_worker_node.yml
+#- include: join_worker_node.yml
+- block:
+  - name: join_worker_node | Check if rancher agent container is running
+    docker_container_info:
+      name: rancher-agent
+    register: agent_running
+
+  - name: join_worker_node | Does container exist?
+    ansible.builtin.debug:
+      msg: "Worker rancher-agent {{ 'exists' if agent_running.exists else 'does not exist' }}"
+
+  - name:  join_worker_node | Adding worker node to the Cluster {{ cluster_name }}
+    become: true
+    shell: "{{ nodecommand }} --worker"
+    when: not agent_running.exists
+
+  when: "inventory_hostname in groups['rancher_worknode']"

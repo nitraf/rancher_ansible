@@ -1,6 +1,5 @@
 ---
 # defaults file for rancher
-rancher_version: "v2.5.0"
 
 rancher__cli_version: "v2.4.6"
 
@@ -20,7 +19,7 @@ rancher__create_cluster_body: |
        },
        "network":{
           "type":"networkConfig",
-          "plugin":"flannel"
+          "plugin":"canal"
        },
        "ingress":{
           "type":"ingressConfig",
@@ -49,27 +48,27 @@ rancher__create_cluster_body: |
     "name":"{{ cluster_name }}"
   }
 
-rancher__cluster: |
-  {
-     "dockerRootDir":"/var/lib/docker",
-     "enableNetworkPolicy":false,
-     "type":"cluster",
-     "rancherKubernetesEngineConfig":{
-        "addonJobTimeout":30,
-        "ignoreDockerVersion":true,
-        "sshAgentAuth":false,
-        "type":"rancherKubernetesEngineConfig",
-        "network":{
-           "type":"networkConfig",
-           "plugin":"Flannel"
-        }
-     },
-     "name":"yournewclustersssansi"
-  }
+# rancher__cluster: |
+#   {
+#      "dockerRootDir":"/var/lib/docker",
+#      "enableNetworkPolicy":false,
+#      "type":"cluster",
+#      "rancherKubernetesEngineConfig":{
+#         "addonJobTimeout":30,
+#         "ignoreDockerVersion":true,
+#         "sshAgentAuth":false,
+#         "type":"rancherKubernetesEngineConfig",
+#         "network":{
+#            "type":"networkConfig",
+#            "plugin":"Flannel"
+#         }
+#      },
+#      "name":"yournewclustersssansi"
+#   }
 
-rancher__auth: |
-  {
-     "Authorization":{
-        "Bearer token-bvlhv":"rwbbhjs6f7nl6cst4djtbwj4tjlgsl5q5sw5psm2kvzprs4clkklv2"
-     }
-  }
+# rancher__auth: |
+#   {
+#      "Authorization":{
+#         "Bearer token-bvlhv":"rwbbhjs6f7nl6cst4djtbwj4tjlgsl5q5sw5psm2kvzprs4clkklv2"
+#      }
+#   }

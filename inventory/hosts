@@ -2,21 +2,23 @@
 ansible_ssh_user="vagrant"
 ansible_ssh_private_key_file="~/.vagrant.d/insecure_private_key"
 docker__users=['vagrant']
+rancher_server="rancher01.example.com"
+rancher_server_url="https://rancher01.example.com"
 
 # Rancher master
 [rancher_master]
 rancher-01 ansible_ssh_host=192.168.2.11 type=rmaster
 
 # Rancher clusters with etcd,controlplane node role
-#[rancher_cluster]
-#rancher-01 ansible_ssh_host=192.168.2.11 type=etcdcplane
+[rancher_cplane]
+rancher-02 ansible_ssh_host=192.168.2.12 type=etcdcplane
 
 # Worker Nodes to be attached to the Clusters
 [rancher_worknode]
-rancher-02 ansible_ssh_host=192.168.2.12 type=worker
 rancher-03 ansible_ssh_host=192.168.2.13 type=worker
-#rancher-04 ansible_ssh_host=192.168.2.14 type=worker
+rancher-04 ansible_ssh_host=192.168.2.14 type=worker
 
 [rancher:children]
 rancher_master
+rancher_cplane
 rancher_worknode

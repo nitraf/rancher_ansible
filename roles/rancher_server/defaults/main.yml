@@ -1,9 +1,9 @@
 ---
 # defaults file for rancher
-rancher_name: 'rancher_master'
+rancher_name: "rancher_master"
 rancher_port: 80
 rancher_ssl_port: 443
-rancher_version: "v2.5.0"
+rancher_persistent_data_dir: "/var/lib/rancher-data"
 
 helm_server_url: "https://kubernetes-charts.storage.googleapis.com/"
 helm_branch: "master"
